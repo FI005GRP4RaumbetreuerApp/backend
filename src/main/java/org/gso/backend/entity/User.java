@@ -22,6 +22,8 @@ import java.util.*;
 public class User implements UserDetails {
     @Id @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
+    private String vorname;
+    private String nachname;
     private String email;
     @JsonIgnore
     private String password;

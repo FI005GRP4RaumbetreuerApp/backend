@@ -1,9 +1,11 @@
 package org.gso.backend.controller;
 
 import org.gso.backend.entity.User;
+import org.gso.backend.enums.Role;
 import org.gso.backend.repository.UserRepository;
 import org.gso.backend.request.LoginRequest;
 import org.gso.backend.request.RefreshRequest;
+import org.gso.backend.request.RegistrationRequest;
 import org.gso.backend.response.LoginResponse;
 import org.gso.backend.response.RefreshResponse;
 import org.gso.backend.security.JwtTokenProvider;
@@ -14,6 +16,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 
 @CrossOrigin("*")
@@ -55,7 +59,7 @@ public class AuthController {
                 LoginResponse.builder()
                         .access_token(access_token)
                         .refresh_token(refresh_token)
-                        .email(loginRequest.getEmail())
+                        .email(user.getEmail())
                         .roles(user.getAuthorities())
                         .build());
     }
@@ -66,9 +70,11 @@ public class AuthController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        User user = userRepository.findByEmail(jwtTokenProvider.getUserEmailFromRefreshToken(refreshRequest.getRefresh_token())).get();
+        Optional<User> optionalUser = userRepository.findByEmail(jwtTokenProvider.getUserEmailFromRefreshToken(refreshRequest.getRefresh_token()));
 
-        if (user == null) return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        if (!optionalUser.isPresent()) return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+
+        User user = optionalUser.get();
 
         if (!user.getRefresh_token().equals(refreshRequest.getRefresh_token()))
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
@@ -76,6 +82,34 @@ public class AuthController {
         String access_token = jwtTokenProvider.generateToken(user);
 
         return ResponseEntity.ok(RefreshResponse.builder().access_token(access_token).build());
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<LoginResponse> register(@RequestBody RegistrationRequest registrationRequest){
+        if(!registrationRequest.isValid()) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        User user = new User();
+        user.setEmail(registrationRequest.getEmail());
+        user.setVorname(registrationRequest.getVornamen());
+        user.setNachname(registrationRequest.getNachnamen());
+        user.setKuerzel(registrationRequest.getKürzel());
+        user.setPassword(registrationRequest.getPasswordEncrypted());
+        user.setRole(Role.USER);
+        user.set_active(true);
+
+        String access_token = jwtTokenProvider.generateToken(user);
+        String refresh_token = jwtTokenProvider.generateRefreshToken(user);
+
+        user.setRefresh_token(refresh_token);
+        userRepository.save(user);
+
+        return ResponseEntity.ok(
+                LoginResponse.builder()
+                        .access_token(access_token)
+                        .refresh_token(refresh_token)
+                        .email(user.getEmail())
+                        .roles(user.getAuthorities())
+                        .build());
     }
 
 }
