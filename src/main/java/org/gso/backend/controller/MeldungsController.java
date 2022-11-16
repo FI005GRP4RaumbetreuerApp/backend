@@ -2,12 +2,11 @@ package org.gso.backend.controller;
 
 import org.gso.backend.entity.Meldung;
 import org.gso.backend.entity.User;
-import org.gso.backend.repository.MeldungRepository;
+import org.gso.backend.repository.MeldungsRepository;
 import org.gso.backend.repository.UserRepository;
 import org.gso.backend.security.JwtTokenProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,12 +15,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/meldungen")
 public class MeldungsController {
-    private final MeldungRepository meldungRepository;
+    private final MeldungsRepository meldungsRepository;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public MeldungsController(MeldungRepository meldungRepository, UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
-        this.meldungRepository = meldungRepository;
+    public MeldungsController(MeldungsRepository meldungsRepository, UserRepository userRepository, JwtTokenProvider jwtTokenProvider) {
+        this.meldungsRepository = meldungsRepository;
         this.userRepository = userRepository;
         this.jwtTokenProvider = jwtTokenProvider;
     }
@@ -35,6 +34,6 @@ public class MeldungsController {
         System.out.println(user.getId());
 
 
-        return ResponseEntity.ok(meldungRepository.findAllByCreated_by(user));
+        return ResponseEntity.ok(meldungsRepository.findAllByCreated_by(user));
     }
 }
