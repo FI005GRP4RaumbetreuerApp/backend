@@ -2,13 +2,14 @@ package org.gso.backend.controller;
 
 import org.gso.backend.entity.User;
 import org.gso.backend.enums.Role;
+import org.gso.backend.model.EmailDetails;
 import org.gso.backend.repository.UserRepository;
-import org.gso.backend.request.LoginRequest;
-import org.gso.backend.request.RefreshRequest;
-import org.gso.backend.request.RegistrationRequest;
+import org.gso.backend.request.*;
 import org.gso.backend.response.LoginResponse;
 import org.gso.backend.response.RefreshResponse;
 import org.gso.backend.security.JwtTokenProvider;
+import org.gso.backend.services.EmailService;
+import org.gso.backend.utils.RandomString;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -27,12 +28,15 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final EmailService emailService;
     private final JwtTokenProvider jwtTokenProvider;
 
-    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtTokenProvider jwtTokenProvider) {
+
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, EmailService emailService, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
+        this.emailService = emailService;
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
@@ -110,6 +114,47 @@ public class AuthController {
                         .email(user.getEmail())
                         .roles(user.getAuthorities())
                         .build());
+    }
+
+    @PostMapping("/forgotpassword")
+    public ResponseEntity<HttpStatus> resetPassword(@RequestBody ForgotPasswordRequest forgotPasswordRequest){
+        Optional<User> optionalUser = userRepository.findByEmail(forgotPasswordRequest.getEmail());
+
+        if(!optionalUser.isPresent()) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        User user = optionalUser.get();
+        String resetCode = new RandomString().nextString();
+
+        user.setPassword_reset_code(resetCode);
+        userRepository.save(user);
+
+        EmailDetails emailDetails = EmailDetails.builder()
+                .subject("Passwort zurücksetzen")
+                .recipient(user.getEmail())
+                .msgBody("Hallo " + user.getVorname() + " " + user.getNachname() + ",<br><br>" +
+                        "hier ist dein Code, um dein Passwort zurückzusetzen: <b>" + resetCode + "</b><br><br><br>" +
+                        "Solltest du dein Passwort nicht vergessen haben, kannst du diese E-Mail ignorieren.").build();
+
+        emailService.sendSimpleMail(emailDetails);
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("/resetpassword")
+    public ResponseEntity<HttpStatus> resetPassword(@RequestBody ResetPasswordRequest resetPasswordRequest){
+        if(!resetPasswordRequest.isValid()) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        Optional<User> optionalUser = userRepository.findByPassword_reset_code(resetPasswordRequest.getReset_code());
+
+        if(!optionalUser.isPresent()) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        User user = optionalUser.get();
+
+        user.setPassword_reset_code("");
+        user.setPassword(resetPasswordRequest.getPasswordEncrypted());
+        userRepository.save(user);
+
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
 }

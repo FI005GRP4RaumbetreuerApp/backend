@@ -6,11 +6,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Data
 public class RegistrationRequest {
-    String email;
-    String vornamen;
-    String nachnamen;
-    String kürzel;
-    String password;
+    private String email;
+    private String vornamen;
+    private String nachnamen;
+    private String kürzel;
+    private String password;
 
     public String getPasswordEncrypted(){
         return new BCryptPasswordEncoder().encode(password);

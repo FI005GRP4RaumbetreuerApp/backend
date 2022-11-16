@@ -33,6 +33,7 @@ public class User implements UserDetails {
     private Timestamp created_at;
     private Timestamp updated_at;
     private String refresh_token;
+    private String password_reset_code;
 
     @PrePersist
     protected void onCreate() {
