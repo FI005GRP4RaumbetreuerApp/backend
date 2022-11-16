@@ -39,6 +39,10 @@ public class User implements UserDetails {
         password_reset_code = "";
     }
 
+    public void resetRefreshToken(){
+        refresh_token = "";
+    }
+
     @PrePersist
     protected void onCreate() {
         created_at = new Timestamp(new Date().getTime());

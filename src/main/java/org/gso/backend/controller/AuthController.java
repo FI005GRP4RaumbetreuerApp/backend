@@ -151,6 +151,7 @@ public class AuthController {
         User user = optionalUser.get();
 
         user.resetPasswordResetCode();
+        user.resetRefreshToken();
         user.setPassword(resetPasswordRequest.getPasswordEncrypted());
         userRepository.save(user);
 
