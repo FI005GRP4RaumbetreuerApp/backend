@@ -1,6 +1,5 @@
 package org.gso.backend.controller;
 
-import org.gso.backend.entity.Meldung;
 import org.gso.backend.entity.User;
 import org.gso.backend.repository.MeldungsRepository;
 import org.gso.backend.repository.UserRepository;
