@@ -42,7 +42,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity login(@RequestBody LoginRequest loginRequest) {
+        System.out.println(loginRequest.getEmail());
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         loginRequest.getEmail(),
@@ -50,7 +51,7 @@ public class AuthController {
                 )
         );
 
-        if (!authentication.isAuthenticated()) return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        if (!authentication.isAuthenticated()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("E-Mail or Password incorrect");
 
         User user = userRepository.findByEmail(loginRequest.getEmail()).get();
 
@@ -91,8 +92,12 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<LoginResponse> register(@RequestBody RegistrationRequest registrationRequest){
-        if(!registrationRequest.isValid()) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    public ResponseEntity register(@RequestBody RegistrationRequest registrationRequest){
+        if(!registrationRequest.isValid()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Registration is invalid!");
+
+        Optional<User> optionalUser = userRepository.findByEmail(registrationRequest.getEmail());
+
+        if(optionalUser.isPresent()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("E-Mail already used!");
 
         User user = new User();
         user.setEmail(registrationRequest.getEmail());
@@ -119,10 +124,10 @@ public class AuthController {
     }
 
     @PostMapping("/forgotpassword")
-    public ResponseEntity<HttpStatus> resetPassword(@RequestBody ForgotPasswordRequest forgotPasswordRequest){
+    public ResponseEntity resetPassword(@RequestBody ForgotPasswordRequest forgotPasswordRequest){
         Optional<User> optionalUser = userRepository.findByEmail(forgotPasswordRequest.getEmail());
 
-        if(!optionalUser.isPresent()) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        if(!optionalUser.isPresent()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("No User with this E-Mail was found");
 
         User user = optionalUser.get();
         String resetCode = new RandomString().nextString();
@@ -139,16 +144,16 @@ public class AuthController {
 
         emailService.sendSimpleMail(emailDetails);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 
     @PostMapping("/resetpassword")
-    public ResponseEntity<HttpStatus> resetPassword(@RequestBody ResetPasswordRequest resetPasswordRequest){
+    public ResponseEntity resetPassword(@RequestBody ResetPasswordRequest resetPasswordRequest){
         if(!resetPasswordRequest.isValid()) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         Optional<User> optionalUser = userRepository.findByPassword_reset_code(resetPasswordRequest.getReset_code());
 
-        if(!optionalUser.isPresent()) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        if(!optionalUser.isPresent()) return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("E-Mail already used!");
 
         User user = optionalUser.get();
 
@@ -157,6 +162,6 @@ public class AuthController {
         user.setPassword(resetPasswordRequest.getPasswordEncrypted());
         userRepository.save(user);
 
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
 }

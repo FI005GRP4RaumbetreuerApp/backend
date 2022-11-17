@@ -1,13 +1,14 @@
 package org.gso.backend.controller;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.EnumUtils;
 import org.gso.backend.entity.GeräteTyp;
 import org.gso.backend.entity.Meldung;
 import org.gso.backend.entity.Room;
 import org.gso.backend.entity.User;
-import org.gso.backend.exceptions.GeräteTypNotFoundException;
-import org.gso.backend.exceptions.RoomNotFoundException;
-import org.gso.backend.exceptions.UserNotFoundException;
+import org.gso.backend.enums.Meldungstyp;
+import org.gso.backend.enums.Status;
+import org.gso.backend.exceptions.*;
 import org.gso.backend.repository.GeräteTypRepository;
 import org.gso.backend.repository.MeldungsRepository;
 import org.gso.backend.repository.RaumRepository;
@@ -40,6 +41,15 @@ public class MeldungsController {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
+    @GetMapping("/get/all")
+    public ResponseEntity<List<Meldung>> getAllMeldungen(){
+        return ResponseEntity.ok(meldungsRepository.findAll());
+    }
+
+    @GetMapping("/get/room/{room_id}")
+    public ResponseEntity<List<Meldung>> getAllMeldungenByRoom(@PathVariable String room_id){
+        return ResponseEntity.ok(meldungsRepository.findAllByRoomId(room_id));
+    }
 
     @GetMapping("/get/own")
     public ResponseEntity<List<Meldung>> getOwnMeldungen(@RequestHeader(HttpHeaders.AUTHORIZATION) String access_token){
@@ -57,29 +67,35 @@ public class MeldungsController {
         try {
             Meldung meldung = buildMeldungFromRequest(meldungsRequest);
             meldungsRepository.save(meldung);
-        } catch (UserNotFoundException | RoomNotFoundException | GeräteTypNotFoundException e) {
+        } catch (UserNotFoundException | RoomNotFoundException | GeräteTypNotFoundException | MeldungstypNotFoundException | StatusNotFoundException e) {
             log.warn(e.getMessage());
             //e.printStackTrace();
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
 
         return ResponseEntity.ok().build();
     }
 
-    private Meldung buildMeldungFromRequest(MeldungsRequest meldungsRequest) throws UserNotFoundException, RoomNotFoundException, GeräteTypNotFoundException {
+    private Meldung buildMeldungFromRequest(MeldungsRequest meldungsRequest) throws UserNotFoundException, RoomNotFoundException, GeräteTypNotFoundException, MeldungstypNotFoundException, StatusNotFoundException {
+        if(!EnumUtils.isValidEnum(Meldungstyp.class, meldungsRequest.getMeldungs_typ().toUpperCase())) throw new MeldungstypNotFoundException("Meldungstyp " + meldungsRequest.getMeldungs_typ().toUpperCase() + " is unknown!");
+        if(!EnumUtils.isValidEnum(Status.class, meldungsRequest.getStatus().toUpperCase())) throw new StatusNotFoundException("Status " + meldungsRequest.getStatus().toUpperCase() + " is unknown!");
+
         Optional<User> user = userRepository.getById(meldungsRequest.getCreated_by_id());
         Optional<Room> room = raumRepository.getById(meldungsRequest.getRaum_id());
         Optional<GeräteTyp> geraete_typ = geraeteTypRepository.getById(meldungsRequest.getGeraete_typ_id());
 
-        if(!user.isPresent()) throw new UserNotFoundException("Es konnte kein User mit der ID " + meldungsRequest.getCreated_by_id() + " gefunden werden!");
-        if(!room.isPresent()) throw new RoomNotFoundException("Es konnte kein Raum mit der ID " + meldungsRequest.getRaum_id() + " gefunden werden!");
-        if(!geraete_typ.isPresent()) throw new GeräteTypNotFoundException("Es konnte kein Geräte-Typ mit der ID " + meldungsRequest.getGeraete_typ_id() + " gefunden werden!");
+        if(!user.isPresent()) throw new UserNotFoundException("No User with ID " + meldungsRequest.getCreated_by_id() + " was found!");
+        if(!room.isPresent()) throw new RoomNotFoundException("No Room with ID " + meldungsRequest.getRaum_id() + " was found!");
+        if(!geraete_typ.isPresent()) throw new GeräteTypNotFoundException("No Geräte-Typ with ID " + meldungsRequest.getGeraete_typ_id() + " was found!");
+
 
         Meldung meldung = new Meldung();
-        meldung.setMeldungstyp(meldungsRequest.getMeldungs_typ());
         meldung.setDescription(meldungsRequest.getDescription());
-        meldung.setStatus(meldungsRequest.getStatus());
         meldung.setGeraete_id(meldungsRequest.getGeraete_id());
+
+        meldung.setMeldungstyp(Meldungstyp.valueOf(meldungsRequest.getMeldungs_typ().toUpperCase()));
+        meldung.setStatus(Status.valueOf(meldungsRequest.getStatus()));
+
         meldung.setGeraete_typ(geraete_typ.get());
         meldung.setCreated_by(user.get());
         meldung.setRoom(room.get());

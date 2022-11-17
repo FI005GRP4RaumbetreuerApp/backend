@@ -12,8 +12,8 @@ public class MeldungsRequest {
     private String description;
     private long created_by_id;
     private String geraete_id;
-    private Meldungstyp meldungs_typ;
-    private Status status;
+    private String meldungs_typ;
+    private String status;
 
 
 }
