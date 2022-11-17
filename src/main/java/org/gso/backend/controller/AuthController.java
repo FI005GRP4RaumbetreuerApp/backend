@@ -150,11 +150,11 @@ public class AuthController {
 
         User user = optionalUser.get();
 
-        user.setPassword_reset_code("");
+        user.resetPasswordResetCode();
+        user.resetRefreshToken();
         user.setPassword(resetPasswordRequest.getPasswordEncrypted());
         userRepository.save(user);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
 }

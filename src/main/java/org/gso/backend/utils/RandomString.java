@@ -34,23 +34,12 @@ public class RandomString {
         this.buf = new char[length];
     }
 
-    /**
-     * Create an alphanumeric string generator.
-     */
     public RandomString(int length, Random random) {
         this(length, random, alphanum);
     }
-
-    /**
-     * Create an alphanumeric strings from a secure generator.
-     */
     public RandomString(int length) {
         this(length, new SecureRandom());
     }
-
-    /**
-     * Create session identifiers.
-     */
     public RandomString() {
         this(21);
     }
