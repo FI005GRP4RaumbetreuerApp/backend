@@ -14,6 +14,7 @@ import org.gso.backend.repository.MeldungsRepository;
 import org.gso.backend.repository.RaumRepository;
 import org.gso.backend.repository.UserRepository;
 import org.gso.backend.request.MeldungsRequest;
+import org.gso.backend.request.NewMeldungsStatusRequest;
 import org.gso.backend.security.JwtTokenProvider;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -63,7 +64,7 @@ public class MeldungsController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity getOwnMeldungen(@RequestHeader(HttpHeaders.AUTHORIZATION) String access_token, @RequestBody MeldungsRequest meldungsRequest){
+    public ResponseEntity setMeldungsStatus(@RequestHeader(HttpHeaders.AUTHORIZATION) String access_token, @RequestBody MeldungsRequest meldungsRequest){
         try {
             Meldung meldung = buildMeldungFromRequest(meldungsRequest, userRepository.findByEmail(jwtTokenProvider.getUserEmailFromAccessToken(access_token)).get());
             meldungsRepository.save(meldung);
@@ -72,6 +73,21 @@ public class MeldungsController {
             //e.printStackTrace();
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/set/status")
+    public ResponseEntity getOwnMeldungen(@RequestHeader(HttpHeaders.AUTHORIZATION) String access_token, @RequestBody NewMeldungsStatusRequest newMeldungsStatusRequest){
+        Optional<Meldung> optionalMeldung = meldungsRepository.findById(newMeldungsStatusRequest.getMeldungs_id());
+
+        if(!optionalMeldung.isPresent()) return ResponseEntity.badRequest().body("Meldung with ID " + newMeldungsStatusRequest.getMeldungs_id() + " is unknown");
+        if(!EnumUtils.isValidEnum(Status.class, newMeldungsStatusRequest.getStatus().toUpperCase())) return ResponseEntity.badRequest().body("Status " + newMeldungsStatusRequest.getStatus().toUpperCase() + " is unknown!");
+
+        Meldung meldung = optionalMeldung.get();
+
+        meldung.setStatus(Status.valueOf(newMeldungsStatusRequest.getStatus().toUpperCase()));
+        meldungsRepository.save(meldung);
 
         return ResponseEntity.ok().build();
     }
