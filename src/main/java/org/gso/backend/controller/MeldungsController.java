@@ -47,27 +47,27 @@ public class MeldungsController {
     }
 
     @GetMapping("/get/room/{room_id}")
-    public ResponseEntity<List<Meldung>> getAllMeldungenByRoom(@PathVariable String room_id){
-        return ResponseEntity.ok(meldungsRepository.findAllByRoomId(room_id));
+    public ResponseEntity getAllMeldungenByRoom(@PathVariable String room_id){
+        Optional<Room> optionalRoom = raumRepository.getById(room_id);
+
+        if(!optionalRoom.isPresent()) return ResponseEntity.badRequest().body("Room " + room_id + " is unknown");
+
+        return ResponseEntity.ok(meldungsRepository.findAllByRoomId(optionalRoom.get()));
     }
 
     @GetMapping("/get/own")
     public ResponseEntity<List<Meldung>> getOwnMeldungen(@RequestHeader(HttpHeaders.AUTHORIZATION) String access_token){
         User user = userRepository.findByEmail(jwtTokenProvider.getUserEmailFromAccessToken(access_token)).get();
 
-        System.out.println(user.getEmail());
-        System.out.println(user.getId());
-
-
         return ResponseEntity.ok(meldungsRepository.findAllByCreated_by(user));
     }
 
     @PostMapping("/add")
-    public ResponseEntity getOwnMeldungen(@RequestBody MeldungsRequest meldungsRequest){
+    public ResponseEntity getOwnMeldungen(@RequestHeader(HttpHeaders.AUTHORIZATION) String access_token, @RequestBody MeldungsRequest meldungsRequest){
         try {
-            Meldung meldung = buildMeldungFromRequest(meldungsRequest);
+            Meldung meldung = buildMeldungFromRequest(meldungsRequest, userRepository.findByEmail(jwtTokenProvider.getUserEmailFromAccessToken(access_token)).get());
             meldungsRepository.save(meldung);
-        } catch (UserNotFoundException | RoomNotFoundException | GeräteTypNotFoundException | MeldungstypNotFoundException | StatusNotFoundException e) {
+        } catch (RoomNotFoundException | GeräteTypNotFoundException | MeldungstypNotFoundException | StatusNotFoundException e) {
             log.warn(e.getMessage());
             //e.printStackTrace();
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -76,15 +76,13 @@ public class MeldungsController {
         return ResponseEntity.ok().build();
     }
 
-    private Meldung buildMeldungFromRequest(MeldungsRequest meldungsRequest) throws UserNotFoundException, RoomNotFoundException, GeräteTypNotFoundException, MeldungstypNotFoundException, StatusNotFoundException {
+    private Meldung buildMeldungFromRequest(MeldungsRequest meldungsRequest, User user) throws RoomNotFoundException, GeräteTypNotFoundException, MeldungstypNotFoundException, StatusNotFoundException {
         if(!EnumUtils.isValidEnum(Meldungstyp.class, meldungsRequest.getMeldungs_typ().toUpperCase())) throw new MeldungstypNotFoundException("Meldungstyp " + meldungsRequest.getMeldungs_typ().toUpperCase() + " is unknown!");
         if(!EnumUtils.isValidEnum(Status.class, meldungsRequest.getStatus().toUpperCase())) throw new StatusNotFoundException("Status " + meldungsRequest.getStatus().toUpperCase() + " is unknown!");
 
-        Optional<User> user = userRepository.getById(meldungsRequest.getCreated_by_id());
         Optional<Room> room = raumRepository.getById(meldungsRequest.getRaum_id());
         Optional<GeräteTyp> geraete_typ = geraeteTypRepository.getById(meldungsRequest.getGeraete_typ_id());
 
-        if(!user.isPresent()) throw new UserNotFoundException("No User with ID " + meldungsRequest.getCreated_by_id() + " was found!");
         if(!room.isPresent()) throw new RoomNotFoundException("No Room with ID " + meldungsRequest.getRaum_id() + " was found!");
         if(!geraete_typ.isPresent()) throw new GeräteTypNotFoundException("No Geräte-Typ with ID " + meldungsRequest.getGeraete_typ_id() + " was found!");
 
@@ -97,7 +95,7 @@ public class MeldungsController {
         meldung.setStatus(Status.valueOf(meldungsRequest.getStatus()));
 
         meldung.setGeraete_typ(geraete_typ.get());
-        meldung.setCreated_by(user.get());
+        meldung.setCreated_by(user);
         meldung.setRoom(room.get());
 
         return meldung;

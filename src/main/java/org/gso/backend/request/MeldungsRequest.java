@@ -10,7 +10,6 @@ public class MeldungsRequest {
     private String raum_id;
     private long geraete_typ_id;
     private String description;
-    private long created_by_id;
     private String geraete_id;
     private String meldungs_typ;
     private String status;
