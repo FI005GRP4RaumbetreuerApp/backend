@@ -58,6 +58,7 @@ public class AuthController {
         String refresh_token = jwtTokenProvider.generateRefreshToken(user);
 
         user.setRefresh_token(refresh_token);
+        user.resetPasswordResetCode();
         userRepository.save(user);
 
         return ResponseEntity.ok(

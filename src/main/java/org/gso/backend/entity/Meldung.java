@@ -11,6 +11,7 @@ import org.gso.backend.enums.Status;
 
 import javax.persistence.*;
 import java.sql.Timestamp;
+import java.util.Date;
 
 @Entity
 @Data
@@ -44,5 +45,13 @@ public class Meldung {
     @JsonIdentityReference(alwaysAsId = true)
     private User updated_by;
 
+    @PrePersist
+    protected void onCreate() {
+        created_at = new Timestamp(new Date().getTime());
+    }
 
+    @PreUpdate
+    protected void onUpdate() {
+        updated_at = new Timestamp(new Date().getTime());
+    }
 }
