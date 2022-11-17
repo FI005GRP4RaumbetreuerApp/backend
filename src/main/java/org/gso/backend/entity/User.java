@@ -30,9 +30,13 @@ public class User implements UserDetails {
     private String kuerzel;
     private Role role;
     private boolean is_active;
+    @JsonIgnore
     private Timestamp created_at;
+    @JsonIgnore
     private Timestamp updated_at;
+    @JsonIgnore
     private String refresh_token;
+    @JsonIgnore
     private String password_reset_code;
 
     public void resetPasswordResetCode(){
