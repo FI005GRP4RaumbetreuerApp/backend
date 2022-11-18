@@ -22,7 +22,7 @@ public class RegistrationRequest {
         if(StringUtils.isEmpty(nachnamen)) return false;
         if(StringUtils.isEmpty(kürzel)) return false;
         if(StringUtils.isEmpty(password)) return false;
-        if(!email.contains("@")) return false;
+        if(!email.toLowerCase().endsWith("@gso.schule.koeln")) return false;
 
         return true;
     }
