@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface RaumRepository extends JpaRepository<Room, Long> {
-    @Query("SELECT room FROM Room room WHERE room.id = ?1")
+    @Query("SELECT room FROM Room room WHERE room.id = ?1 ORDER BY room.id ASC")
     Optional<Room> getById(String id);
 
-    @Query("SELECT room FROM Room room WHERE room.raumbetreuer = ?1")
+    @Query("SELECT room FROM Room room WHERE room.raumbetreuer = ?1 ORDER BY room.id ASC")
     List<Room> getById(User user);
 }
