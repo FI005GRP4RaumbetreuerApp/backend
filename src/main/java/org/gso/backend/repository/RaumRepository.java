@@ -14,4 +14,7 @@ public interface RaumRepository extends JpaRepository<Room, Long> {
 
     @Query("SELECT room FROM Room room WHERE room.raumbetreuer = ?1 ORDER BY room.id ASC")
     List<Room> getById(User user);
+
+    @Query("SELECT room FROM Room room ORDER BY room.id ASC")
+    List<Room> findAll();
 }
